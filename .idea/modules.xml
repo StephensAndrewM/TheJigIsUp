@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/OpenCVLibrary300/OpenCVLibrary300.iml" filepath="$PROJECT_DIR$/OpenCVLibrary300/OpenCVLibrary300.iml" />
       <module fileurl="file://$PROJECT_DIR$/TheJigIsUp.iml" filepath="$PROJECT_DIR$/TheJigIsUp.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/openCVLibrary2411/openCVLibrary2411.iml" filepath="$PROJECT_DIR$/openCVLibrary2411/openCVLibrary2411.iml" />
+      <module fileurl="file://$PROJECT_DIR$/openCVLibrary300/openCVLibrary300.iml" filepath="$PROJECT_DIR$/openCVLibrary300/openCVLibrary300.iml" />
     </modules>
   </component>
 </project>
