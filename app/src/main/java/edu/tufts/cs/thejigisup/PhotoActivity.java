@@ -4,19 +4,9 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.DMatch;
 import org.opencv.core.Mat;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
-import org.opencv.core.MatOfDMatch;
-import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.features2d.DescriptorExtractor;
-import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.FeatureDetector;
-import org.opencv.features2d.*;
-import org.opencv.features2d.Features2d;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
@@ -25,24 +15,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-
-import static org.opencv.features2d.Features2d.drawMatches;
 
 public class PhotoActivity extends Activity implements CvCameraViewListener2, OnTouchListener {
     private static final String TAG = "Jig::PhotoActivity";
@@ -197,7 +177,7 @@ public class PhotoActivity extends Activity implements CvCameraViewListener2, On
         }
 
         imageFilename = imageFile.getAbsolutePath();
-        Log.i(TAG, imageFilename);
+        Log.i(TAG, "Saving Image: " + imageFilename);
         Boolean imageSaved = Imgcodecs.imwrite(imageFilename, mBgr);
 
         if (imageSaved) {
