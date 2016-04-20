@@ -25,8 +25,6 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
-import java.sql.Array;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 
@@ -37,20 +35,13 @@ public class AnalysisActivity extends AppCompatActivity {
     private static final String TAG = "Jig::AnalysisActivity";
 
     private final int MAX_DIVISIONS = 4;
-    private final double SCORE_THRESHOLD = 5; //TODO find threshold :)
+    private final double SCORE_THRESHOLD = 5;
     private final int CIRCLE_RADIUS = 20;
     private final Scalar CIRCLE_COLOR = new Scalar(0,255,0);
 
     FeatureDetector detector;
     DescriptorExtractor extractor;
     DescriptorMatcher matcher;
-
-    // don't look I'm about to use a lot of globals
-    MatOfKeyPoint currentMatOfKeyPoint;
-    int currentDivisions;
-    int currentQuadrant;
-    MatOfKeyPoint currentBoxKeypoints;
-    MatOfKeyPoint currentPieceKeypoints;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,22 +92,20 @@ public class AnalysisActivity extends AppCompatActivity {
         extractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
         matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
 
-        double bestScore = 0; //TODO might be wrong
+        double bestScore = 0;
         Point bestPosition = new Point(-1,-1);  //indexed from top left
 
         for (int divisions = 1; divisions <= MAX_DIVISIONS; divisions++) {
             Log.i(TAG, "Attempting " + divisions + " divisions");
-            currentDivisions = divisions;
 
             // for number of quadrants
             for (int quad = 0; quad < divisions * divisions; quad++) {
                 Log.i(TAG, "Attempting quadrant " + quad);
-                currentQuadrant = quad;
 
                 //      divide into quadrant
                 Mat currQuad = getQuadrant(box, quad, divisions);
                 //      get score for quadrant
-                Pair<Double, Point> quadrantInfo = getQuadrantScore(currQuad, piece);
+                Pair<Double, Point> quadrantInfo = findMatches(currQuad, piece, divisions, quad);
                 double score = quadrantInfo.first;
                 if (score > bestScore) {
                     bestScore = score;
@@ -163,35 +152,15 @@ public class AnalysisActivity extends AppCompatActivity {
 
     }
 
-    Pair<Double, Point> getQuadrantScore(Mat boxRegion, Mat piece) {
+    Pair<Double, Point> findMatches(Mat boxRegion, Mat piece, int divisions, int quadrantId) {
 
-        Vector<DMatch> matches = findMatches(boxRegion, piece);
-        int numMatches = matches.size();
-        if (numMatches == 0) {
-            return Pair.create(0.0, new Point(-1, -1));
-        }
-        KeyPoint keyPoints[] = currentBoxKeypoints.toArray();
-        Point temp;
-        int totalx = 0;
-        int totaly = 0;
-        for(int i = 0; i < numMatches; i++) {
-            temp = keyPoints[matches.get(i).queryIdx].pt;
-            totalx += temp.x;
-            totaly += temp.y;
-        }
-        int avgx = totalx / numMatches;
-        int avgy = totaly / numMatches;
+        Pair<Mat, MatOfKeyPoint> boxFeaturePointData = getFeaturePoints(boxRegion);
+        Mat boxDescriptors = boxFeaturePointData.first;
+        MatOfKeyPoint boxKeypoints = boxFeaturePointData.second;
 
-        return Pair.create((double)numMatches, new Point(avgx, avgy));
-
-    }
-
-    Vector<DMatch> findMatches(Mat boxRegion, Mat piece) {
-
-        Mat boxDescriptors = getFeaturePoints(boxRegion);
-        currentBoxKeypoints = currentMatOfKeyPoint;
-        Mat pieceDescriptors = getFeaturePoints(piece);
-        currentPieceKeypoints = currentMatOfKeyPoint;
+        Pair<Mat, MatOfKeyPoint> pieceFeaturePointData = getFeaturePoints(piece);
+        Mat pieceDescriptors = pieceFeaturePointData.first;
+        MatOfKeyPoint pieceKeypoints = pieceFeaturePointData.second;
 
         MatOfDMatch matches = new MatOfDMatch();
         matcher.match(boxDescriptors, pieceDescriptors, matches);
@@ -209,7 +178,7 @@ public class AnalysisActivity extends AppCompatActivity {
         Log.i(TAG, "Min Hamming Distance: " + min_dist);
         Log.i(TAG, "Max Hamming Distance: " + max_dist);
         Log.i(TAG, "Hamming Cutoff: " + Math.min(3*min_dist, 25));
-        Log.i(TAG, "Divisions: " + currentDivisions + " Quadrant: " + currentQuadrant);
+        Log.i(TAG, "Divisions: " + divisions + " Quadrant: " + quadrantId);
 
         Vector<DMatch> listOfGoodMatches = new Vector<>();
         for (int i = 0; i < matchesList.size(); i++) {
@@ -221,15 +190,34 @@ public class AnalysisActivity extends AppCompatActivity {
         MatOfDMatch goodMatches = new MatOfDMatch();
         goodMatches.fromList(listOfGoodMatches);
 
+        // Debug: Output the Matches
         Mat matchesMat = new Mat();
-        drawMatches(boxRegion, currentBoxKeypoints, piece, currentPieceKeypoints, goodMatches, matchesMat);
-        saveImage(matchesMat);
+        drawMatches(boxRegion, boxKeypoints, piece, pieceKeypoints, goodMatches, matchesMat);
+        saveImage(matchesMat, divisions, quadrantId);
 
-        return listOfGoodMatches;
+
+        // Calculate the Center of Matches, if a Match is Found
+        int numMatches = listOfGoodMatches.size();
+        if (numMatches == 0) {
+            return Pair.create(0.0, new Point(-1, -1));
+        }
+        KeyPoint keyPoints[] = boxKeypoints.toArray();
+        Point temp;
+        int totalx = 0;
+        int totaly = 0;
+        for(int i = 0; i < numMatches; i++) {
+            temp = keyPoints[listOfGoodMatches.get(i).queryIdx].pt;
+            totalx += temp.x;
+            totaly += temp.y;
+        }
+        int avgx = totalx / numMatches;
+        int avgy = totaly / numMatches;
+
+        return Pair.create((double)numMatches, new Point(avgx, avgy));
 
     }
 
-    private void saveImage(Mat mBgr) {
+    private void saveImage(Mat mBgr, int divisions, int quadrantId) {
 
         long saveTime = System.currentTimeMillis();
 
@@ -237,7 +225,7 @@ public class AnalysisActivity extends AppCompatActivity {
 
         File debugDirectory = new File(sd, "jig/debug/");
         debugDirectory.mkdirs();
-        String filename = saveTime + "-" + currentDivisions + "-" + currentQuadrant + ".png";
+        String filename = saveTime + "-" + divisions + "-" + quadrantId + ".png";
         File file = new File(debugDirectory, filename);
 
         String filePath = file.getAbsolutePath();
@@ -251,16 +239,14 @@ public class AnalysisActivity extends AppCompatActivity {
 
     }
 
-    Mat getFeaturePoints(Mat image) {
+    Pair<Mat, MatOfKeyPoint> getFeaturePoints(Mat image) {
 
         MatOfKeyPoint keypoints = new MatOfKeyPoint();
         detector.detect(image, keypoints);
         Mat descriptors = new Mat();
         extractor.compute(image, keypoints, descriptors);
 
-        currentMatOfKeyPoint = keypoints;
-
-        return descriptors;
+        return Pair.create(descriptors, keypoints);
 
     }
 }
