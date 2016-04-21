@@ -2,6 +2,7 @@ package edu.tufts.cs.thejigisup;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
+import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
@@ -11,15 +12,20 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -27,7 +33,8 @@ import java.io.File;
 public class PhotoActivity extends Activity implements CvCameraViewListener2, OnTouchListener {
     private static final String TAG = "Jig::PhotoActivity";
 
-    private CameraBridgeViewBase mOpenCvCameraView;
+//    private CameraBridgeViewBase mOpenCvCameraView;
+    private FocusableJavaCameraView mOpenCvCameraView;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -66,7 +73,8 @@ public class PhotoActivity extends Activity implements CvCameraViewListener2, On
 
         setContentView(R.layout.activity_photo);
 
-        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.tutorial1_activity_java_surface_view);
+//        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.tutorial1_activity_java_surface_view);
+        mOpenCvCameraView  = (FocusableJavaCameraView) findViewById(R.id.tutorial1_activity_java_surface_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
 
@@ -117,10 +125,15 @@ public class PhotoActivity extends Activity implements CvCameraViewListener2, On
     boolean touched = false;
     @Override
     public boolean onTouch(View v, MotionEvent event) {
+        mOpenCvCameraView.autoFocus();
+        return true;
+    }
+
+    // Called by Capture Button (see View)
+    public void onCapturePress(View v) {
         touched = true;
         Toast toast = Toast.makeText(getApplicationContext(), "Picture Captured!", Toast.LENGTH_SHORT);
         toast.show();
-        return true;
     }
 
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
