@@ -1,6 +1,8 @@
 package edu.tufts.cs.thejigisup;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.TypedArray;
 import android.net.Uri;
@@ -14,6 +16,7 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.Gallery;
+import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -23,7 +26,6 @@ import java.util.Collections;
 
 @SuppressWarnings("deprecation")
 public class BoxGalleryActivity extends Activity {
-
     String currentBoxPath;
 
     private String[] getPictureList() {
@@ -31,6 +33,9 @@ public class BoxGalleryActivity extends Activity {
         Log.d("Files","Path: "+path);
         File f = new File(path);
         File images[] = f.listFiles();
+        if (images.length == 0) {
+            return null;
+        }
         Log.d("Files","Size: "+images.length);
         ArrayList<String> pictureList = new ArrayList<String>();
         for(int i = 0; i < images.length;i++)
@@ -48,41 +53,73 @@ public class BoxGalleryActivity extends Activity {
     //the images to display
     String[] imageIDs;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_box_gallery);
 
+        final Activity baseContext = this;
+
         imageIDs = getPictureList();
 
-        //Initialize the main view to the most recent image
-        ImageView imageView = (ImageView) findViewById(R.id.image1);
-        imageView.setImageURI(Uri.parse(new File(imageIDs[0]).toString()));
+        if (imageIDs == null) {
+            Log.d("jig::BoxGallery","No images, going to box taking picture");
+            Intent intent = new Intent(getBaseContext(), PhotoActivity.class);
+            intent.putExtra("activityMode", "PUZZLE_BOX");
+            Toast toast = Toast.makeText(getApplicationContext(), "No Boxes Saved", Toast.LENGTH_LONG);
+            toast.show();
+            startActivity(intent);
+            return;
+        }
 
-        // Note that Gallery view is deprecated in Android 4.1---
-        Gallery gallery = (Gallery) findViewById(R.id.gallery1);
-        gallery.setAdapter(new ImageAdapter(this));
-        gallery.setOnItemClickListener(new OnItemClickListener() {
+        GridView grid = (GridView) findViewById(R.id.grid1);
+        grid.setAdapter(new ImageAdapter(this));
+        grid.setOnItemClickListener(new OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int position,long id)
             {
-                Toast.makeText(getBaseContext(),"pic" + (position + 1) + " selected",
-                        Toast.LENGTH_SHORT).show();
                 // display the images selected
                 currentBoxPath = imageIDs[position];
-                ImageView imageView = (ImageView) findViewById(R.id.image1);
-                imageView.setImageURI(Uri.parse(new File(currentBoxPath).toString()));
-            }
-        });
-
-        imageView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.d("jig::boxGallery", "image view was clicked.");
                 Intent intent;
                 intent = new Intent(getBaseContext(), PhotoActivity.class);
                 intent.putExtra("activityMode", "PUZZLE_PIECES");
                 intent.putExtra("boxImage", currentBoxPath);
                 startActivity(intent);
+            }
+        });
+
+
+        grid.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View v, int position,long id) {
+
+                Log.d("jig::boxGallery", "image view was long clicked.");
+                currentBoxPath = imageIDs[position];
+                DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which){
+                            case DialogInterface.BUTTON_POSITIVE:
+                                //Yes button clicked
+                                File toDelete = new File(currentBoxPath);
+                                boolean isDeleted = toDelete.delete();
+                                Intent intent;
+                                intent = new Intent(getBaseContext(), BoxGalleryActivity.class);
+                                startActivity(intent);
+                                break;
+
+                            case DialogInterface.BUTTON_NEGATIVE:
+                                //No button clicked
+                                break;
+                        }
+                    }
+                };
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(baseContext);
+                builder.setMessage("Are you sure you want to delete this box image?").setPositiveButton("Yes", dialogClickListener)
+                        .setNegativeButton("No", dialogClickListener).show();
+
+                return true;
 
             }
         });
@@ -115,7 +152,7 @@ public class BoxGalleryActivity extends Activity {
         public View getView(int position, View convertView, ViewGroup parent) {
             ImageView imageView = new ImageView(context);
             imageView.setImageURI(Uri.parse(new File(imageIDs[position]).toString()));
-            imageView.setLayoutParams(new Gallery.LayoutParams(100, 100));
+            imageView.setLayoutParams(new GridView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             imageView.setBackgroundResource(itemBackground);
             return imageView;
         }
