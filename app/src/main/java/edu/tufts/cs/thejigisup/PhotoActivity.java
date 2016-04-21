@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -85,6 +86,15 @@ public class PhotoActivity extends Activity implements CvCameraViewListener2, On
         } else {
             mode = ActivityMode.PUZZLE_PIECES;
         }
+
+        // Display the right label in the top left
+        ImageView cameraLabel;
+        if (mode == ActivityMode.PUZZLE_BOX) {
+            cameraLabel = (ImageView) findViewById(R.id.boxLabel);
+        } else {
+            cameraLabel = (ImageView) findViewById(R.id.pieceLabel);
+        }
+        cameraLabel.setVisibility(View.VISIBLE);
 
     }
 

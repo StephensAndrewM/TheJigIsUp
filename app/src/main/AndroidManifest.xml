@@ -32,8 +32,10 @@
             android:name=".PhotoActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/title_activity_photo"
-            android:screenOrientation="landscape"></activity>
-        <activity android:name=".BoxGalleryActivity"></activity>
+            android:screenOrientation="landscape">
+        </activity>
+        <activity android:name=".BoxGalleryActivity">
+        </activity>
         <activity android:name=".AnalysisActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:screenOrientation="landscape">

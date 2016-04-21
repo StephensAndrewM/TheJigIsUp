@@ -13,6 +13,7 @@ import android.util.Pair;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import org.opencv.android.Utils;
 import org.opencv.core.CvException;
@@ -136,9 +137,7 @@ public class AnalysisActivity extends AppCompatActivity {
     public void matchAnotherClick(View v) {
 
         // Go back to camera view with same box image
-        Intent intent = new Intent(getBaseContext(), PhotoActivity.class);
-        intent.putExtra("activityMode", "PUZZLE_PIECES");
-        intent.putExtra("boxImage", boxImageFile);
+        Intent intent = new Intent(getBaseContext(), MainActivity.class);
         startActivity(intent);
 
     }
@@ -211,6 +210,9 @@ public class AnalysisActivity extends AppCompatActivity {
             if (bestPositions != null) {
                 displayBoxResult(boxMatBgr, bestPositions.get(0).second);
 
+                Toast toast = Toast.makeText(getApplicationContext(), "We found your piece! It's at the green dot on the box.", Toast.LENGTH_LONG);
+                toast.show();
+
                 // Only give the user the option to try again if there are multiple results
                 if (bestPositions.size() > 1) {
                     Log.d(TAG, "Displaying Try Again Button");
@@ -222,7 +224,10 @@ public class AnalysisActivity extends AppCompatActivity {
 
             } else {
                 Log.d(TAG, "NO POSITIONS FOUND");
-                // TODO Put an Error Here
+
+                Toast toast = Toast.makeText(getApplicationContext(), "Sorry! We couldn't find your piece. Try another one?", Toast.LENGTH_LONG);
+                toast.show();
+
             }
 
             if (progress != null && progress.isShowing()) {
