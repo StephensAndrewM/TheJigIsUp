@@ -3,4 +3,6 @@
     <string name="title_activity_photo">PhotoActivity</string>
     <string name="try_again">Got it Wrong?</string>
     <string name="match_another">Match Another Piece</string>
+    <string name="existing_puzzle">Existing Puzzle</string>
+    <string name="new_puzzle">New Puzzle</string>
 </resources>
