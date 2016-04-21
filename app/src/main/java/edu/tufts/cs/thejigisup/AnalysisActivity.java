@@ -47,6 +47,7 @@ public class AnalysisActivity extends AppCompatActivity {
         String boxImageFile = extras.getString("boxImage");
         String pieceImageFile = extras.getString("pieceImage");
 
+        Log.d(TAG, "Starting Asynchronous Thread");
         new AsyncPuzzleActivity(this).execute(boxImageFile, pieceImageFile);
 
     }
@@ -75,14 +76,20 @@ public class AnalysisActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
 
+            Log.d(TAG, "Preparing Background Processing");
+
             progress.setTitle("Processing...");
             progress.setMessage("Please wait while we analyze your puzzle.");
+            progress.setCancelable(false);
+            progress.setCanceledOnTouchOutside(false);
             progress.show();
 
         }
 
         @Override
         protected Point doInBackground(String... params) {
+
+            Log.d(TAG, "Starting Background Processing");
 
             String boxImageFile = params[0];
             String pieceImageFile = params[1];
@@ -105,6 +112,8 @@ public class AnalysisActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Point bestPosition) {
 
+            Log.d(TAG, "Finished Image Processing");
+
             // Draw Indicator of Position
             Mat boxMatRgb = new Mat();
             Imgproc.cvtColor(boxMatBgr, boxMatRgb, Imgproc.COLOR_BGR2RGB);
@@ -124,8 +133,9 @@ public class AnalysisActivity extends AppCompatActivity {
                 Log.d(TAG, e.getMessage());
             }
 
-            if (progress.isShowing()) {
+            if (progress != null && progress.isShowing()) {
                 progress.dismiss();
+                progress = null;
             }
 
         }
