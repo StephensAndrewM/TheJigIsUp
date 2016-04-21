@@ -52,6 +52,9 @@ public class AnalysisActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    public void onBackPressed() {}
+
     private class AsyncPuzzleActivity extends AsyncTask<String, Void, Point> {
 
         private static final String TAG = "Jig::AsyncPuzzleAct";

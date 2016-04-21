@@ -30,11 +30,13 @@
         </activity>
         <activity
             android:name=".PhotoActivity"
-            android:configChanges="keyboardHidden|orientation"
+            android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/title_activity_photo"
-            android:screenOrientation="landscape" >
+            android:screenOrientation="landscape">
         </activity>
-        <activity android:name=".AnalysisActivity" >
+        <activity android:name=".AnalysisActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:screenOrientation="landscape">
         </activity>
     </application>
 

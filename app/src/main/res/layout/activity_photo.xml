@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
-    <org.opencv.android.JavaCameraView
+    <edu.tufts.cs.thejigisup.FocusableJavaCameraView
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:visibility="gone"
@@ -26,6 +26,7 @@
             android:padding="10dp"
             android:id="@+id/imageCaptureLabel"
             android:text="Capture"
+            android:onClick="onCapturePress"
             android:textAppearance="?android:attr/textAppearanceLarge" />
 
     </LinearLayout>
