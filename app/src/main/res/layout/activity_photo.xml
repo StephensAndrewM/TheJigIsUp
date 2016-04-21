@@ -12,23 +12,50 @@
         opencv:show_fps="true"
         opencv:camera_id="any" />
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:clickable="true"
-        android:gravity="center"
         android:orientation="horizontal" >
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:padding="10dp"
-            android:id="@+id/imageCaptureLabel"
-            android:text="Capture"
-            android:onClick="onCapturePress"
-            android:textAppearance="?android:attr/textAppearanceLarge" />
+        <ImageView
+            android:layout_width="128dp"
+            android:layout_height="48dp"
+            android:src="@drawable/box_camera_label"
+            android:scaleType="centerInside"
+            android:background="@android:color/transparent"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:id="@+id/boxLabel"
+            android:visibility="invisible"
+            android:layout_marginLeft="12dp"
+            android:layout_marginTop="12dp" />
 
-    </LinearLayout>
+        <ImageView
+            android:layout_width="128dp"
+            android:layout_height="48dp"
+            android:src="@drawable/piece_camera_label"
+            android:scaleType="centerInside"
+            android:background="@android:color/transparent"
+            android:id="@+id/pieceLabel"
+            android:visibility="invisible"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:layout_marginTop="12dp"
+            android:layout_marginLeft="12dp" />
+
+        <ImageButton
+            android:layout_width="128dp"
+            android:layout_height="128dp"
+            android:id="@+id/imageCaptureButton"
+            android:scaleType="centerInside"
+            android:background="@android:color/transparent"
+            android:src="@drawable/camera_icon"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:onClick="onCapturePress"
+            android:layout_marginRight="4dp" />
+
+    </RelativeLayout>
 
 </FrameLayout>
