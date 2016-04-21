@@ -2,6 +2,7 @@ package edu.tufts.cs.thejigisup;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Environment;
@@ -9,6 +10,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 
 import org.opencv.android.Utils;
@@ -28,6 +31,10 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Vector;
 
@@ -37,6 +44,16 @@ public class AnalysisActivity extends AppCompatActivity {
 
     private static final String TAG = "Jig::AnalysisActivity";
 
+    private final int CIRCLE_RADIUS = 30;
+    private final Scalar CIRCLE_COLOR = new Scalar(0,255,0,0.5);
+
+    String boxImageFile;
+    String pieceImageFile;
+    Mat originalBoxMatBgr;
+
+    ArrayList<Pair<Double, Point>> resultantMatches = null;
+    int resultantMatchIndex = 1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,25 +61,99 @@ public class AnalysisActivity extends AppCompatActivity {
 
         // Load the Piece Images from File
         Bundle extras = getIntent().getExtras();
-        String boxImageFile = extras.getString("boxImage");
-        String pieceImageFile = extras.getString("pieceImage");
+        boxImageFile = extras.getString("boxImage");
+        pieceImageFile = extras.getString("pieceImage");
+
+        // Display Images Temporarily (With No Result)
+        Mat boxMatBgr = Imgcodecs.imread(boxImageFile, Imgcodecs.IMREAD_COLOR);
+        originalBoxMatBgr = boxMatBgr;
+        Mat boxMatRgb = new Mat();
+        Imgproc.cvtColor(boxMatBgr, boxMatRgb, Imgproc.COLOR_BGR2RGB);
+        ImageView boxImageView = (ImageView) findViewById(R.id.display_box);
+        displayMatImage(boxImageView, boxMatRgb);
+
+        Mat pieceMatBgr = Imgcodecs.imread(pieceImageFile, Imgcodecs.IMREAD_COLOR);
+        Mat pieceMatRgb = new Mat();
+        Imgproc.cvtColor(pieceMatBgr, pieceMatRgb, Imgproc.COLOR_BGR2RGB);
+        ImageView pieceImageView = (ImageView) findViewById(R.id.display_piece);
+        displayMatImage(pieceImageView, pieceMatRgb);
 
         Log.d(TAG, "Starting Asynchronous Thread");
         new AsyncPuzzleActivity(this).execute(boxImageFile, pieceImageFile);
 
     }
 
+    private void displayMatImage(ImageView view, Mat rgb) {
+
+        Bitmap displayImage;
+
+        try{
+            Log.i(TAG, "Displaying Box Bitmap");
+            displayImage = Bitmap.createBitmap(rgb.cols(), rgb.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(rgb, displayImage);
+            view.setImageBitmap(displayImage);
+        }
+        catch (CvException e) {
+            Log.d(TAG, e.getMessage());
+        }
+
+    }
+
+    private void displayBoxResult(Mat boxMatBgr, Point bestPosition) {
+
+        // Draw Indicator of Position
+        Mat boxMatRgb = new Mat();
+        Imgproc.cvtColor(boxMatBgr, boxMatRgb, Imgproc.COLOR_BGR2RGB);
+        Imgproc.circle(boxMatRgb, bestPosition, CIRCLE_RADIUS, CIRCLE_COLOR, -1);
+
+        ImageView displayImageView = (ImageView) findViewById(R.id.display_box);
+        displayMatImage(displayImageView, boxMatRgb);
+
+    }
+
+    public void tryAgainClick(View v) {
+
+        Button tryAgain = (Button) findViewById(R.id.try_again_button);
+
+        resultantMatchIndex++;
+
+        if (resultantMatches != null && resultantMatchIndex < resultantMatches.size()) {
+
+            displayBoxResult(originalBoxMatBgr, resultantMatches.get(resultantMatchIndex).second);
+
+            if (resultantMatchIndex >= resultantMatches.size()) {
+                Log.d(TAG, "Hiding Try Again Button (A) at ResultantMatchIndex "+resultantMatchIndex);
+                tryAgain.setVisibility(View.INVISIBLE);
+            }
+
+        } else {
+            Log.d(TAG, "Hiding Try Again Button (B) at ResultantMatchIndex "+resultantMatchIndex);
+            tryAgain.setVisibility(View.INVISIBLE);
+        }
+
+    }
+
+    public void matchAnotherClick(View v) {
+
+        // Go back to camera view with same box image
+        Intent intent = new Intent(getBaseContext(), PhotoActivity.class);
+        intent.putExtra("activityMode", "PUZZLE_PIECES");
+        intent.putExtra("boxImage", boxImageFile);
+        startActivity(intent);
+
+    }
+
+    // We don't want to go back to previous activity. Force not to.
     @Override
     public void onBackPressed() {}
 
-    private class AsyncPuzzleActivity extends AsyncTask<String, Void, Point> {
+
+    private class AsyncPuzzleActivity extends AsyncTask<String, Void, ArrayList<Pair<Double, Point>>> {
 
         private static final String TAG = "Jig::AsyncPuzzleAct";
 
         private final int MAX_DIVISIONS = 4;
         private final double SCORE_THRESHOLD = 5;
-        private final int CIRCLE_RADIUS = 20;
-        private final Scalar CIRCLE_COLOR = new Scalar(0,255,0);
 
         FeatureDetector detector;
         DescriptorExtractor extractor;
@@ -90,7 +181,7 @@ public class AnalysisActivity extends AppCompatActivity {
         }
 
         @Override
-        protected Point doInBackground(String... params) {
+        protected ArrayList<Pair<Double, Point>> doInBackground(String... params) {
 
             Log.d(TAG, "Starting Background Processing");
 
@@ -106,34 +197,32 @@ public class AnalysisActivity extends AppCompatActivity {
             Mat pieceMat = Imgcodecs.imread(pieceImageFile, Imgcodecs.IMREAD_GRAYSCALE);
 
             // Get the Target Piece Position
-            Point bestPosition = processImages(boxMatBW, pieceMat);
+            ArrayList<Pair<Double, Point>> bestPositions = processImages(boxMatBW, pieceMat);
 
-            return bestPosition;
+            return bestPositions;
 
         }
 
         @Override
-        protected void onPostExecute(Point bestPosition) {
+        protected void onPostExecute(ArrayList<Pair<Double, Point>> bestPositions) {
 
             Log.d(TAG, "Finished Image Processing");
 
-            // Draw Indicator of Position
-            Mat boxMatRgb = new Mat();
-            Imgproc.cvtColor(boxMatBgr, boxMatRgb, Imgproc.COLOR_BGR2RGB);
-            Imgproc.circle(boxMatRgb, bestPosition, CIRCLE_RADIUS, CIRCLE_COLOR, -1);
+            if (bestPositions != null) {
+                displayBoxResult(boxMatBgr, bestPositions.get(0).second);
 
-            Bitmap displayImage;
-            ImageView displayImageView;
-            displayImageView = (ImageView) findViewById(R.id.display_image);
+                // Only give the user the option to try again if there are multiple results
+                if (bestPositions.size() > 1) {
+                    Log.d(TAG, "Displaying Try Again Button");
+                    Button tryAgain = (Button) findViewById(R.id.try_again_button);
+                    tryAgain.setVisibility(View.VISIBLE);
+                    resultantMatches = bestPositions;
+                    resultantMatchIndex = 0;
+                }
 
-            try{
-                Log.i(TAG, "Displaying Box Bitmap");
-                displayImage = Bitmap.createBitmap(boxMatRgb.cols(), boxMatRgb.rows(), Bitmap.Config.ARGB_8888);
-                Utils.matToBitmap(boxMatRgb, displayImage);
-                displayImageView.setImageBitmap(displayImage);
-            }
-            catch (CvException e) {
-                Log.d(TAG, e.getMessage());
+            } else {
+                Log.d(TAG, "NO POSITIONS FOUND");
+                // TODO Put an Error Here
             }
 
             if (progress != null && progress.isShowing()) {
@@ -146,15 +235,14 @@ public class AnalysisActivity extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(Void... values) {}
 
-        Point processImages(Mat box, Mat piece) {
+        ArrayList<Pair<Double, Point>> processImages(Mat box, Mat piece) {
 
             // Initialize OpenCV Items
             detector = FeatureDetector.create(FeatureDetector.ORB);
             extractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
             matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
 
-            double bestScore = 0;
-            Point bestPosition = new Point(-1,-1);  //indexed from top left
+            ArrayList<Pair<Double, Point>> scores = new ArrayList<>();
 
             for (int divisions = 1; divisions <= MAX_DIVISIONS; divisions++) {
                 Log.i(TAG, "Attempting " + divisions + " divisions");
@@ -163,28 +251,73 @@ public class AnalysisActivity extends AppCompatActivity {
                 for (int quad = 0; quad < divisions * divisions; quad++) {
                     Log.i(TAG, "Attempting quadrant " + quad);
 
-                    //      divide into quadrant
+                    // divide into quadrant
                     Mat currQuad = getQuadrant(box, quad, divisions);
-                    //      get score for quadrant
-                    Pair<Double, Point> quadrantInfo = findMatches(currQuad, piece, divisions, quad);
-                    double score = quadrantInfo.first;
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestPosition = translatePosition(quadrantInfo.second, divisions, quad, box);
-                    }
-                }
-                // compare scores
-                //      if one sufficiently high score, break
-                //      otherwise, calculate and save position and score
+                    // get score for quadrant
+                    Pair<Double, Point> quadrantScore = findMatches(currQuad, piece, divisions, quad);
 
-                if (bestScore >= SCORE_THRESHOLD) {
-                    Log.i(TAG, "Score matches best score, exiting");
-                    break;
+                    // If we found any matching points, record that (with translated coordinates)
+                    if (quadrantScore.first > 0) {
+                        Pair<Double, Point> savedScore = Pair.create(quadrantScore.first,
+                                translatePosition(quadrantScore.second, divisions, quad, box));
+                        scores.add(savedScore);
+                    }
+
                 }
+
+                if (scores.size() > 0) {
+
+                    // Custom comparator, compares only the score values of the points
+                    Collections.sort(scores, new Comparator<Pair<Double, Point>>() {
+                        @Override
+                        public int compare(Pair<Double, Point> lhs, Pair<Double, Point> rhs) {
+                            return rhs.first.compareTo(lhs.first);
+                        }
+                    });
+
+                    // If the best score has been found, we don't need to loop again
+                    if (scores.get(0).first >= SCORE_THRESHOLD) {
+                        Log.i(TAG, "Score matches best score, exiting");
+                        break;
+                    }
+
+                }
+
             }
+
+            // If we didn't find anything, return a null value
+            if (scores.size() == 0) {
+                return null;
+            }
+
+            double bestScore = scores.get(0).first;
+            Point bestPosition = scores.get(0).second;
             Log.i(TAG, "Final Score: " + bestScore);
             Log.i(TAG, "Final Position: " + bestPosition.x + ", " + bestPosition.y);
-            return bestPosition;
+
+            ArrayList<Pair<Double, Point>> returnedScores = new ArrayList<>();
+
+            // If the best score is good, we return only the scores above the threshold
+            if (bestScore >= SCORE_THRESHOLD) {
+                for (int i = 0; i < scores.size(); i++) {
+                    if (scores.get(i).first >= SCORE_THRESHOLD) {
+                        returnedScores.add(scores.get(i));
+                    }
+                }
+
+            // If the best score is meh, we return other points that have that same score
+            } else {
+                for (int i = 0; i < scores.size(); i++) {
+                    if (scores.get(i).first >= bestScore) {
+                        returnedScores.add(scores.get(i));
+                    }
+                }
+            }
+
+            Log.d(TAG, scores.toString());
+            Log.d(TAG, returnedScores.toString());
+
+            return returnedScores;
 
         }
 
