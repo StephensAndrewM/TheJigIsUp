@@ -40,6 +40,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        existingPuzzleButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                Intent intent = new Intent(getBaseContext(), BoxGalleryActivity.class);
+                startActivity(intent);
+
+            }
+        });
+
 
 
 
