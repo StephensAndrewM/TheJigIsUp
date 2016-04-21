@@ -30,13 +30,20 @@ import java.util.Collections;
 @SuppressWarnings("deprecation")
 public class BoxGalleryActivity extends Activity {
     String currentBoxPath;
+    String currentBoxPathSmall;
 
-    private String[] getPictureList() {
-        String path = Environment.getExternalStorageDirectory().toString() + "/jig/box";
+    private String[] getPictureList(boolean isSmall) {
+        String path;
+        if(isSmall) {
+            path = Environment.getExternalStorageDirectory().toString() + "/jig/box/small";
+        } else {
+            path = Environment.getExternalStorageDirectory().toString() + "/jig/box";
+        }
         Log.d("Files","Path: "+path);
         File f = new File(path);
+        f.mkdirs();
         File images[] = f.listFiles();
-        if (images.length == 0) {
+        if (images == null || images.length == 0) {
             return null;
         }
         Log.d("Files","Size: "+images.length);
@@ -55,6 +62,7 @@ public class BoxGalleryActivity extends Activity {
 
     //the images to display
     String[] imageIDs;
+    String[] smallImageIDs;
 
 
     @Override
@@ -64,7 +72,8 @@ public class BoxGalleryActivity extends Activity {
 
         final Activity baseContext = this;
 
-        imageIDs = getPictureList();
+        imageIDs = getPictureList(false);
+        smallImageIDs = getPictureList(true);
 
         if (imageIDs == null) {
             Log.d("jig::BoxGallery","No images, going to box taking picture");
@@ -98,6 +107,7 @@ public class BoxGalleryActivity extends Activity {
 
                 Log.d("jig::boxGallery", "image view was long clicked.");
                 currentBoxPath = imageIDs[position];
+                currentBoxPathSmall = smallImageIDs[position];
                 DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -106,6 +116,8 @@ public class BoxGalleryActivity extends Activity {
                                 //Yes button clicked
                                 File toDelete = new File(currentBoxPath);
                                 boolean isDeleted = toDelete.delete();
+                                toDelete = new File(currentBoxPathSmall);
+                                isDeleted = toDelete.delete();
                                 Intent intent;
                                 intent = new Intent(getBaseContext(), BoxGalleryActivity.class);
                                 startActivity(intent);
@@ -154,47 +166,11 @@ public class BoxGalleryActivity extends Activity {
         // returns an ImageView view
         public View getView(int position, View convertView, ViewGroup parent) {
             ImageView imageView = new ImageView(context);
-            imageView.setImageBitmap(decodeSampledBitmapFromFile(new File(imageIDs[position]).toString(), 200, 200));
-            imageView.setImageURI(Uri.parse(new File(imageIDs[position]).toString()));
+            imageView.setImageURI(Uri.parse(new File(smallImageIDs[position]).toString()));
             imageView.setLayoutParams(new GridView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             imageView.setBackgroundResource(itemBackground);
             return imageView;
         }
     }
-    public static int calculateInSampleSize(
-            BitmapFactory.Options options, int reqWidth, int reqHeight) {
-        // Raw height and width of image
-        final int height = options.outHeight;
-        final int width = options.outWidth;
-        int inSampleSize = 1;
 
-        if (height > reqHeight || width > reqWidth) {
-
-            final int halfHeight = height / 2;
-            final int halfWidth = width / 2;
-
-            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
-            // height and width larger than the requested height and width.
-            while ((halfHeight / inSampleSize) > reqHeight
-                    && (halfWidth / inSampleSize) > reqWidth) {
-                inSampleSize *= 2;
-            }
-        }
-
-        return inSampleSize;
-    }
-    public static Bitmap decodeSampledBitmapFromFile(String path,int reqWidth, int reqHeight) {
-
-        // First decode with inJustDecodeBounds=true to check dimensions
-        final BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(path, options);
-
-        // Calculate inSampleSize
-        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
-
-        // Decode bitmap with inSampleSize set
-        options.inJustDecodeBounds = false;
-        return BitmapFactory.decodeFile(path, options);
-    }
 }
