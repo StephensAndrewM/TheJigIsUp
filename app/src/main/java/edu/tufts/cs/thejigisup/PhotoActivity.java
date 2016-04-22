@@ -111,6 +111,7 @@ public class PhotoActivity extends Activity implements CvCameraViewListener2, On
     public void onResume()
     {
         super.onResume();
+        Log.d(TAG, "onResume Called");
         if (!OpenCVLoader.initDebug()) {
             Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
@@ -181,17 +182,13 @@ public class PhotoActivity extends Activity implements CvCameraViewListener2, On
         Mat mBgr = new Mat();
         Imgproc.cvtColor(mRgba, mBgr, Imgproc.COLOR_RGBA2BGR, 3);
 
-        Mat mBgrMini = new Mat();
-        Size sz = new Size(200,200);
-        Imgproc.resize( mBgr, mBgrMini, sz );
-
         long saveTime = System.currentTimeMillis();
 
         // Get Path Directories, Creating Folders if Necessary
         File sd = Environment.getExternalStorageDirectory();
         File pieceDirectory = new File(sd, "jig/pieces/");
         File boxDirectory = new File(sd, "jig/box/");
-        File smallBoxDirectory = new File(sd, "jig/box/small/");
+        File smallBoxDirectory = new File(sd, "jig/smallbox/");
         pieceDirectory.mkdirs();
         boxDirectory.mkdirs();
         smallBoxDirectory.mkdirs();
@@ -199,33 +196,49 @@ public class PhotoActivity extends Activity implements CvCameraViewListener2, On
         // Save in Separate Folder Based on Mode
         String imageFilename = saveTime + ".png";
         File imageFile;
-        File smallImageFile = null;
         if (mode == ActivityMode.PUZZLE_PIECES) {
             imageFile = new File(pieceDirectory, imageFilename);
         } else {
             imageFile = new File(boxDirectory, imageFilename);
-            smallImageFile = new File(smallBoxDirectory, imageFilename);
+
         }
 
-        imageFilename = imageFile.getAbsolutePath();
-        Log.i(TAG, "Saving Image: " + imageFilename);
-        Boolean imageSaved = Imgcodecs.imwrite(imageFilename, mBgr);
+        // Write Primary Image File
+        String imagePath = imageFile.getAbsolutePath();
+        Log.i(TAG, "Saving Image: " + imagePath);
+        Boolean imageSaved = Imgcodecs.imwrite(imagePath, mBgr);
+
         if (imageSaved) {
             Log.i(TAG, "SUCCESS writing image to external storage");
         } else {
-            Log.i(TAG, "Fail writing image to external storage");
+            Log.i(TAG, "FAILED writing image to external storage");
         }
+
+        // If Saving Box Image, Save an Additional Image File
         if(mode == ActivityMode.PUZZLE_BOX) {
+
+            // Generate Burger Slider
+            Mat mBgrMini = new Mat();
+
+            // Images are Guaranteed Horizontal, so We Can Resize This Way
+            // Images Have a Constant 400px Width
+            int smallHeight = (400*mBgr.height())/mBgr.width();
+            Size sz = new Size(400,smallHeight);
+            Imgproc.resize(mBgr, mBgrMini, sz);
+
+            File smallImageFile = new File(smallBoxDirectory, imageFilename);
             String smallFilePath = smallImageFile.getAbsolutePath();
+            Log.i(TAG, "Saving Image: " + smallFilePath);
             Boolean smallImageSaved = Imgcodecs.imwrite(smallFilePath, mBgrMini);
 
             if (smallImageSaved) {
                 Log.i(TAG, "SUCCESS writing small image to external storage");
             } else {
-                Log.i(TAG, "Fail writing smallimage to external storage");
+                Log.i(TAG, "FAILED writing small image to external storage");
             }
         }
-        return imageFilename;
+
+        return imagePath;
 
     }
 

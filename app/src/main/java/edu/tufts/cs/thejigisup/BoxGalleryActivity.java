@@ -29,30 +29,35 @@ import java.util.Collections;
 
 @SuppressWarnings("deprecation")
 public class BoxGalleryActivity extends Activity {
+
+    private static final String TAG = "Jig::BoxGallery";
+
     String currentBoxPath;
     String currentBoxPathSmall;
 
     private String[] getPictureList(boolean isSmall) {
         String path;
         if(isSmall) {
-            path = Environment.getExternalStorageDirectory().toString() + "/jig/box/small";
+            path = Environment.getExternalStorageDirectory().toString() + "/jig/smallbox";
         } else {
             path = Environment.getExternalStorageDirectory().toString() + "/jig/box";
         }
-        Log.d("Files","Path: "+path);
+        Log.d(TAG, "Path: "+path);
         File f = new File(path);
         f.mkdirs();
         File images[] = f.listFiles();
-        if (images == null || images.length == 0) {
+        if (images == null) {
+            Log.d(TAG, "No Images Found in Directory");
             return null;
         }
-        Log.d("Files","Size: "+images.length);
+
+        Log.d(TAG, "Images Found in Directory: "+images.length);
         ArrayList<String> pictureList = new ArrayList<String>();
         for(int i = 0; i < images.length;i++)
         {
-            Log.d("Files", "FileName:" + images[i].getName());
+            Log.d(TAG, "FileName:" + images[i].getName());
             pictureList.add(i, images[i].getAbsolutePath());
-            Log.d("Images", "File:" + pictureList.get(i));
+            Log.d(TAG, "File:" + pictureList.get(i));
         }
         Collections.sort(pictureList);
         Collections.reverse(pictureList);
@@ -75,8 +80,8 @@ public class BoxGalleryActivity extends Activity {
         imageIDs = getPictureList(false);
         smallImageIDs = getPictureList(true);
 
-        if (imageIDs == null) {
-            Log.d("jig::BoxGallery","No images, going to box taking picture");
+        if (imageIDs == null || imageIDs.length == 0) {
+            Log.d(TAG,"No images, going to box taking picture");
             Intent intent = new Intent(getBaseContext(), PhotoActivity.class);
             intent.putExtra("activityMode", "PUZZLE_BOX");
             Toast toast = Toast.makeText(getApplicationContext(), "No Boxes Saved", Toast.LENGTH_LONG);
@@ -105,7 +110,7 @@ public class BoxGalleryActivity extends Activity {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View v, int position,long id) {
 
-                Log.d("jig::boxGallery", "image view was long clicked.");
+                Log.d(TAG, "image view was long clicked.");
                 currentBoxPath = imageIDs[position];
                 currentBoxPathSmall = smallImageIDs[position];
                 DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
