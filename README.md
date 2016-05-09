@@ -1,6 +1,11 @@
 # The Jig Is Up
 
 ## Overview
+*The Jig Is Up!* is an Android application that provides hints to a user working on solving a jigsaw puzzle. The user takes a picture of the finished puzzle on the puzzle box, followed by a puzzle piece with which they are struggling. The app searches for similarities and reports the most likely location of the piece back to the user.
+
+## Approach
+*The Jig Is Up!* utilizes the OpenCV open-source image processing library to find feature points: small, distinctive, areas of interest in a photo. We attempt to match the feature points of a puzzle piece to the feature points of a puzzle box, and once we find enough good matches to have a reasonable degree of confidence, we use these points to calculate the location of the piece and pass this back to the user.
+
 
 ## Installation Instructions
 
